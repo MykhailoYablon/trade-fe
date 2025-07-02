@@ -1,12 +1,113 @@
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import './App.css';
+import axios from 'axios';
+import { useEffect, useState } from 'react';
 
 function Home() {
   return <div>Welcome to the Home page!</div>;
 }
 
 function Trades() {
-  return <div>Trades table will appear here.</div>;
+  const [trades, setTrades] = useState<{
+    id: number;
+    symbol: string;
+    quantity: number;
+    price: number;
+  }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ symbol: '', quantity: '', price: '' });
+  const [submitting, setSubmitting] = useState(false);
+
+  const fetchTrades = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await axios.get('/trades');
+      setTrades(res.data);
+    } catch (err: any) {
+      setError('Failed to fetch trades');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTrades();
+  }, []);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+    try {
+      await axios.post('/trades', {
+        symbol: form.symbol,
+        quantity: Number(form.quantity),
+        price: Number(form.price),
+      });
+      setShowForm(false);
+      setForm({ symbol: '', quantity: '', price: '' });
+      fetchTrades();
+    } catch (err: any) {
+      setError('Failed to create trade');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div>
+      <h2>Trades</h2>
+      <button onClick={() => setShowForm(true)} style={{ marginBottom: 16 }}>Create Trade</button>
+      {showForm && (
+        <form onSubmit={handleSubmit} style={{ marginBottom: 24, background: '#222', padding: 16, borderRadius: 8 }}>
+          <div style={{ marginBottom: 8 }}>
+            <input name="symbol" placeholder="Symbol" value={form.symbol} onChange={handleInputChange} required />
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <input name="quantity" type="number" placeholder="Quantity" value={form.quantity} onChange={handleInputChange} required />
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <input name="price" type="number" step="0.01" placeholder="Price" value={form.price} onChange={handleInputChange} required />
+          </div>
+          <button type="submit" disabled={submitting}>Submit</button>
+          <button type="button" onClick={() => setShowForm(false)} style={{ marginLeft: 8 }}>Cancel</button>
+        </form>
+      )}
+      {loading ? (
+        <div>Loading...</div>
+      ) : error ? (
+        <div style={{ color: 'red' }}>{error}</div>
+      ) : (
+        <table style={{ width: '100%', background: '#222', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr>
+              <th style={{ border: '1px solid #444', padding: 8 }}>ID</th>
+              <th style={{ border: '1px solid #444', padding: 8 }}>Symbol</th>
+              <th style={{ border: '1px solid #444', padding: 8 }}>Quantity</th>
+              <th style={{ border: '1px solid #444', padding: 8 }}>Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            {trades.map(trade => (
+              <tr key={trade.id}>
+                <td style={{ border: '1px solid #444', padding: 8 }}>{trade.id}</td>
+                <td style={{ border: '1px solid #444', padding: 8 }}>{trade.symbol}</td>
+                <td style={{ border: '1px solid #444', padding: 8 }}>{trade.quantity}</td>
+                <td style={{ border: '1px solid #444', padding: 8 }}>{trade.price}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
 }
 
 function Statistics() {
