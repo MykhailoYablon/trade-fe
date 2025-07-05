@@ -9,9 +9,9 @@ function Home() {
 
 function Trades() {
   const [trades, setTrades] = useState<{
-    id: number;
+    id?: number;
     symbol: string;
-    quantity: number;
+    quantity: any;
     price: number;
   }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,8 +24,12 @@ function Trades() {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get('/trades');
-      setTrades(res.data);
+      const res = await axios.get('http://localhost:8080/trades');
+      const data = Array.isArray(res.data) ? res.data : [];
+      setTrades(data);
+      if (!Array.isArray(res.data)) {
+        setError('Response from /trades is not an array.');
+      }
     } catch (err: any) {
       setError('Failed to fetch trades');
     } finally {
@@ -46,7 +50,7 @@ function Trades() {
     setSubmitting(true);
     setError(null);
     try {
-      await axios.post('/trades', {
+      await axios.post('http://localhost:8080/trades', {
         symbol: form.symbol,
         quantity: Number(form.quantity),
         price: Number(form.price),
@@ -88,7 +92,6 @@ function Trades() {
         <table style={{ width: '100%', background: '#222', borderCollapse: 'collapse' }}>
           <thead>
             <tr>
-              <th style={{ border: '1px solid #444', padding: 8 }}>ID</th>
               <th style={{ border: '1px solid #444', padding: 8 }}>Symbol</th>
               <th style={{ border: '1px solid #444', padding: 8 }}>Quantity</th>
               <th style={{ border: '1px solid #444', padding: 8 }}>Price</th>
@@ -96,10 +99,13 @@ function Trades() {
           </thead>
           <tbody>
             {trades.map(trade => (
-              <tr key={trade.id}>
-                <td style={{ border: '1px solid #444', padding: 8 }}>{trade.id}</td>
+              <tr key={trade.symbol}>
                 <td style={{ border: '1px solid #444', padding: 8 }}>{trade.symbol}</td>
-                <td style={{ border: '1px solid #444', padding: 8 }}>{trade.quantity}</td>
+                <td style={{ border: '1px solid #444', padding: 8 }}>
+                  {typeof trade.quantity === 'object' && trade.quantity !== null 
+                    ? (trade.quantity.toString ? trade.quantity.toString() : JSON.stringify(trade.quantity))
+                    : trade.quantity}
+                </td>
                 <td style={{ border: '1px solid #444', padding: 8 }}>{trade.price}</td>
               </tr>
             ))}

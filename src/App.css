@@ -1,8 +1,23 @@
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  display: flex;
+}
+
+body {
+  margin: 0;
+  min-width: 100vw;
+  min-height: 100vh;
+  display: block;
+  place-items: unset;
+}
+
+/* Remove card and logo centering styles for a more desktop look */
+.card, .logo, .read-the-docs, h1 {
+  all: unset;
 }
 
 .logo {
