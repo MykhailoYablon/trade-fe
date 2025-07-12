@@ -38,14 +38,27 @@ interface Position {
   updatedAt: string;
 }
 
+interface Order {
+  id?: number;
+  conid: string;
+  symbol: string;
+  quantity: number;
+  action: string;
+  price: number;
+  createdAt: string;
+}
+
 function Home() {
   return <div>Welcome to the Home page!</div>;
 }
 
 function Positions() {
   const [positions, setPositions] = useState<Position[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ordersLoading, setOrdersLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ symbol: '', quantity: '', avgPrice: '' });
   const [submitting, setSubmitting] = useState(false);
@@ -65,6 +78,23 @@ function Positions() {
       setError('Failed to fetch positions');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchOrders = async () => {
+    setOrdersLoading(true);
+    setOrdersError(null);
+    try {
+      const res = await axios.get('http://localhost:8080/orders');
+      const data = Array.isArray(res.data) ? res.data : [];
+      setOrders(data);
+      if (!Array.isArray(res.data)) {
+        setOrdersError('Response from /orders is not an array.');
+      }
+    } catch (err: any) {
+      setOrdersError('Failed to fetch orders');
+    } finally {
+      setOrdersLoading(false);
     }
   };
 
@@ -94,19 +124,21 @@ function Positions() {
 
   useEffect(() => {
     fetchPositions();
+    fetchOrders();
   }, []);
 
   return (
     <div>
       <h2>Positions</h2>
       
-      {loading ? (
-        <div>Loading...</div>
-      ) : error ? (
-        <div style={{ color: 'red' }}>{error}</div>
-      ) : (
-        <div style={{ display: 'flex', gap: '2rem' }}>
-          <div style={{ flex: 1 }}>
+      <div style={{ display: 'flex', gap: '2rem' }}>
+        <div style={{ flex: 1 }}>
+          <h3>Positions</h3>
+          {loading ? (
+            <div>Loading positions...</div>
+          ) : error ? (
+            <div style={{ color: 'red' }}>{error}</div>
+          ) : (
             <table style={{ width: '100%', background: '#222', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
@@ -148,9 +180,48 @@ function Positions() {
                 })}
               </tbody>
             </table>
-          </div>
+          )}
         </div>
-      )}
+        
+        <div style={{ flex: 1 }}>
+          <h3>Orders</h3>
+          {ordersLoading ? (
+            <div>Loading orders...</div>
+          ) : ordersError ? (
+            <div style={{ color: 'red' }}>{ordersError}</div>
+          ) : (
+            <table style={{ width: '100%', background: '#222', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={{ border: '1px solid #444', padding: 8 }}>Symbol</th>
+                  <th style={{ border: '1px solid #444', padding: 8 }}>Quantity</th>
+                  <th style={{ border: '1px solid #444', padding: 8 }}>Action</th>
+                  <th style={{ border: '1px solid #444', padding: 8 }}>Price</th>
+                  <th style={{ border: '1px solid #444', padding: 8 }}>Created At</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map((order, idx) => {
+                  // Assign a color from a palette based on index
+                  const colors = ['#222', '#2a3d4f', '#3d2a4f', '#4f2a2a', '#2a4f3d', '#4f4f2a'];
+                  const bgColor = colors[idx % colors.length];
+                  return (
+                    <tr key={order.id || idx} style={{ backgroundColor: bgColor }}>
+                      <td style={{ border: '1px solid #444', padding: 8 }}>{order.symbol}</td>
+                      <td style={{ border: '1px solid #444', padding: 8 }}>{order.quantity}</td>
+                      <td style={{ border: '1px solid #444', padding: 8 }}>{order.action}</td>
+                      <td style={{ border: '1px solid #444', padding: 8 }}>{order.price}</td>
+                      <td style={{ border: '1px solid #444', padding: 8 }}>
+                        {new Date(order.createdAt).toLocaleString()}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
