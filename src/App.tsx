@@ -49,7 +49,56 @@ interface Order {
 }
 
 function Home() {
-  return <div>Welcome to the Home page!</div>;
+  const [accounts, setAccounts] = useState<Record<string, string> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchAccounts = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await axios.get('http://localhost:8080/accounts');
+        setAccounts(res.data);
+      } catch (err: any) {
+        setError('Failed to fetch account info');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAccounts();
+  }, []);
+
+  return (
+    <div>
+      <h2>Welcome to the Home page!</h2>
+      <h3>Account Information</h3>
+      {loading ? (
+        <div>Loading account info...</div>
+      ) : error ? (
+        <div style={{ color: 'red' }}>{error}</div>
+      ) : accounts && Object.keys(accounts).length > 0 ? (
+        <table style={{ background: '#222', color: '#fff', borderCollapse: 'collapse', marginTop: 16 }}>
+          <thead>
+            <tr>
+              <th style={{ border: '1px solid #444', padding: 8 }}>Key</th>
+              <th style={{ border: '1px solid #444', padding: 8 }}>Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.entries(accounts).map(([key, value]) => (
+              <tr key={key}>
+                <td style={{ border: '1px solid #444', padding: 8 }}>{key}</td>
+                <td style={{ border: '1px solid #444', padding: 8 }}>{value}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <div>No account info available.</div>
+      )}
+    </div>
+  );
 }
 
 function Positions() {
