@@ -39,13 +39,14 @@ interface Position {
 }
 
 interface Order {
-  id?: number;
-  conid: string;
+  orderId: number;
   symbol: string;
-  quantity: number;
+  quantity: any; // Backend returns an object
+  lmtPrice: number;
+  currency: string;
+  status: string;
   action: string;
-  price: number;
-  createdAt: string;
+  createdAt?: string; // Optional, may not be present
 }
 
 function Home() {
@@ -246,7 +247,8 @@ function Positions() {
                   <th style={{ border: '1px solid #444', padding: 8 }}>Quantity</th>
                   <th style={{ border: '1px solid #444', padding: 8 }}>Action</th>
                   <th style={{ border: '1px solid #444', padding: 8 }}>Price</th>
-                  <th style={{ border: '1px solid #444', padding: 8 }}>Created At</th>
+                  <th style={{ border: '1px solid #444', padding: 8 }}>Status</th>
+                  <th style={{ border: '1px solid #444', padding: 8 }}>Currency</th>
                 </tr>
               </thead>
               <tbody>
@@ -255,14 +257,17 @@ function Positions() {
                   const colors = ['#222', '#2a3d4f', '#3d2a4f', '#4f2a2a', '#2a4f3d', '#4f4f2a'];
                   const bgColor = colors[idx % colors.length];
                   return (
-                    <tr key={order.id || idx} style={{ backgroundColor: bgColor }}>
+                    <tr key={order.orderId} style={{ backgroundColor: bgColor }}>
                       <td style={{ border: '1px solid #444', padding: 8 }}>{order.symbol}</td>
-                      <td style={{ border: '1px solid #444', padding: 8 }}>{order.quantity}</td>
-                      <td style={{ border: '1px solid #444', padding: 8 }}>{order.action}</td>
-                      <td style={{ border: '1px solid #444', padding: 8 }}>{order.price}</td>
                       <td style={{ border: '1px solid #444', padding: 8 }}>
-                        {new Date(order.createdAt).toLocaleString()}
+                        {typeof order.quantity === 'object' && order.quantity !== null
+                          ? JSON.stringify(order.quantity)
+                          : order.quantity}
                       </td>
+                      <td style={{ border: '1px solid #444', padding: 8 }}>{order.action}</td>
+                      <td style={{ border: '1px solid #444', padding: 8 }}>{order.lmtPrice}</td>
+                      <td style={{ border: '1px solid #444', padding: 8 }}>{order.status}</td>
+                      <td style={{ border: '1px solid #444', padding: 8 }}>{order.currency}</td>
                     </tr>
                   );
                 })}
