@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import './App.css';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
@@ -8,6 +8,9 @@ import TradeDetailsPage from './TradeDetailsPage';
 interface Contract {
   conid: string;
   symbol: string;
+  exchange?: string | null;
+  currency?: string;
+  description?: string;
   // Add other contract fields as needed
 }
 
@@ -112,7 +115,12 @@ function Positions() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ symbol: '', quantity: '', avgPrice: '' });
   const [submitting, setSubmitting] = useState(false);
+  const [contractQuery, setContractQuery] = useState('');
+  const [contractResults, setContractResults] = useState<Contract[]>([]);
+  const [contractSearchLoading, setContractSearchLoading] = useState(false);
+  const [contractSearchError, setContractSearchError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const fetchPositions = async () => {
     setLoading(true);
@@ -172,14 +180,74 @@ function Positions() {
     }
   };
 
+  const handleContractSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setContractSearchLoading(true);
+    setContractSearchError(null);
+    try {
+      const res = await axios.get('http://localhost:8080/contracts/search', {
+        params: { query: contractQuery }
+      });
+      setContractResults(Array.isArray(res.data) ? res.data : []);
+      if (!Array.isArray(res.data)) {
+        setContractSearchError('Response from /contracts/search is not an array.');
+      }
+    } catch (err: any) {
+      setContractSearchError('Failed to search contracts');
+    } finally {
+      setContractSearchLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchPositions();
     fetchOrders();
   }, []);
 
+  // Fetch orders again when returning to this page
+  useEffect(() => {
+    fetchOrders();
+  }, [location]);
+
   return (
     <div>
       <h2>Positions</h2>
+      {/* Contract Search */}
+      <form onSubmit={handleContractSearch} style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <input
+          type="text"
+          placeholder="Search contracts..."
+          value={contractQuery}
+          onChange={e => setContractQuery(e.target.value)}
+          style={{ padding: '0.5rem', flex: 1 }}
+        />
+        <button type="submit" disabled={contractSearchLoading} style={{ padding: '0.5rem 1rem' }}>
+          {contractSearchLoading ? 'Searching...' : 'Search'}
+        </button>
+      </form>
+      {contractSearchError && <div style={{ color: 'red', marginBottom: 8 }}>{contractSearchError}</div>}
+      {contractResults.length > 0 && (
+        <table style={{ width: '100%', background: '#222', borderCollapse: 'collapse', marginBottom: 16 }}>
+          <thead>
+            <tr>
+              <th style={{ border: '1px solid #444', padding: 8 }}>Symbol</th>
+              <th style={{ border: '1px solid #444', padding: 8 }}>Exchange</th>
+              <th style={{ border: '1px solid #444', padding: 8 }}>Currency</th>
+              <th style={{ border: '1px solid #444', padding: 8 }}>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            {contractResults.map(contract => (
+              <tr key={contract.conid}>
+                <td style={{ border: '1px solid #444', padding: 8 }}>{contract.symbol}</td>
+                <td style={{ border: '1px solid #444', padding: 8 }}>{contract.exchange ?? 'N/A'}</td>
+                <td style={{ border: '1px solid #444', padding: 8 }}>{contract.currency}</td>
+                <td style={{ border: '1px solid #444', padding: 8 }}>{contract.description}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
       
       <div style={{ display: 'flex', gap: '2rem' }}>
         <div style={{ flex: 1 }}>
