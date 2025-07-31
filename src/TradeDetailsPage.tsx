@@ -174,7 +174,7 @@ export default function TradeDetailsPage() {
       <div style={{ padding: '1rem', background: '#20232a', display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <button onClick={() => navigate(-1)} style={{ marginBottom: 0 }}>Back</button>
         <h2 style={{ margin: 0 }}>Trade Details for {position.symbol}</h2>
-        <button onClick={() => setShowForm(true)} style={{ marginLeft: 'auto' }}>Place Order</button>
+        <button onClick={() => setShowForm(true)} style={{ marginLeft: 'auto' }}>Place Limit Order</button>
       </div>
       {showForm && (
         <form onSubmit={handleSubmit} style={{ margin: '1rem auto', background: '#222', padding: 16, borderRadius: 8, width: 320 }}>
@@ -185,7 +185,7 @@ export default function TradeDetailsPage() {
             <input name="quantity" type="number" placeholder="Quantity" value={form.quantity} onChange={handleInputChange} required />
           </div>
           <div style={{ marginBottom: 8 }}>
-            <input name="avgPrice" type="number" step="0.01" placeholder="Average Price" value={form.avgPrice} onChange={handleInputChange} required />
+            <input name="avgPrice" type="number" step="0.01" placeholder="Limit Price" value={form.avgPrice} onChange={handleInputChange} required />
           </div>
           <div style={{ marginBottom: 8 }}>
             <select 
