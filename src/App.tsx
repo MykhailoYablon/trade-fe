@@ -62,7 +62,7 @@ function Home() {
       setLoading(true);
       setError(null);
       try {
-        const res = await axios.get('http://localhost:8080/accounts');
+        const res = await axios.get('http://localhost:8081/accounts');
         setAccounts(res.data);
       } catch (err: any) {
         setError('Failed to fetch account info');
@@ -119,6 +119,7 @@ function Positions() {
   const [contractResults, setContractResults] = useState<Contract[]>([]);
   const [contractSearchLoading, setContractSearchLoading] = useState(false);
   const [contractSearchError, setContractSearchError] = useState<string | null>(null);
+  const [showAllContracts, setShowAllContracts] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -126,7 +127,7 @@ function Positions() {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get('http://localhost:8080/positions');
+      const res = await axios.get('http://localhost:8081/positions');
       const data = Array.isArray(res.data) ? res.data : [];
       setPositions(data);
       if (!Array.isArray(res.data)) {
@@ -143,7 +144,7 @@ function Positions() {
     setOrdersLoading(true);
     setOrdersError(null);
     try {
-      const res = await axios.get('http://localhost:8080/orders');
+      const res = await axios.get('http://localhost:8081/orders');
       const data = Array.isArray(res.data) ? res.data : [];
       setOrders(data);
       if (!Array.isArray(res.data)) {
@@ -165,7 +166,7 @@ function Positions() {
     setSubmitting(true);
     setError(null);
     try {
-      await axios.post('http://localhost:8080/positions', {
+      await axios.post('http://localhost:8081/positions', {
         symbol: form.symbol,
         quantity: Number(form.quantity),
         avgPrice: Number(form.avgPrice),
@@ -184,8 +185,9 @@ function Positions() {
     e.preventDefault();
     setContractSearchLoading(true);
     setContractSearchError(null);
+    setShowAllContracts(false);
     try {
-      const res = await axios.get('http://localhost:8080/contracts/search', {
+      const res = await axios.get('http://localhost:8081/contracts/search', {
         params: { query: contractQuery }
       });
       setContractResults(Array.isArray(res.data) ? res.data : []);
@@ -196,6 +198,32 @@ function Positions() {
       setContractSearchError('Failed to search contracts');
     } finally {
       setContractSearchLoading(false);
+    }
+  };
+
+  const handleContractClick = async (contract: Contract) => {
+    try {
+      const res = await axios.get('http://localhost:8081/contracts/market-data', {
+        params: { conid: contract.conid }
+      });
+      console.log('Market data response:', res.data);
+      
+      // Navigate to market data page with contract and market data
+      navigate('/market-data', { 
+        state: { 
+          contract, 
+          marketData: res.data 
+        } 
+      });
+    } catch (err: any) {
+      console.error('Failed to fetch market data:', err);
+      // Navigate to error page or show error in current page
+      navigate('/market-data', { 
+        state: { 
+          contract, 
+          error: err.message || 'Failed to fetch market data' 
+        } 
+      });
     }
   };
 
@@ -227,26 +255,48 @@ function Positions() {
       </form>
       {contractSearchError && <div style={{ color: 'red', marginBottom: 8 }}>{contractSearchError}</div>}
       {contractResults.length > 0 && (
-        <table style={{ width: '100%', background: '#222', borderCollapse: 'collapse', marginBottom: 16 }}>
-          <thead>
-            <tr>
-              <th style={{ border: '1px solid #444', padding: 8 }}>Symbol</th>
-              <th style={{ border: '1px solid #444', padding: 8 }}>Exchange</th>
-              <th style={{ border: '1px solid #444', padding: 8 }}>Currency</th>
-              <th style={{ border: '1px solid #444', padding: 8 }}>Description</th>
-            </tr>
-          </thead>
-          <tbody>
-            {contractResults.map(contract => (
-              <tr key={contract.conid}>
-                <td style={{ border: '1px solid #444', padding: 8 }}>{contract.symbol}</td>
-                <td style={{ border: '1px solid #444', padding: 8 }}>{contract.exchange ?? 'N/A'}</td>
-                <td style={{ border: '1px solid #444', padding: 8 }}>{contract.currency}</td>
-                <td style={{ border: '1px solid #444', padding: 8 }}>{contract.description}</td>
+        <div style={{ marginBottom: 16 }}>
+          <table style={{ width: '100%', background: '#222', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={{ border: '1px solid #444', padding: 8 }}>Symbol</th>
+                <th style={{ border: '1px solid #444', padding: 8 }}>Exchange</th>
+                <th style={{ border: '1px solid #444', padding: 8 }}>Currency</th>
+                <th style={{ border: '1px solid #444', padding: 8 }}>Description</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {(showAllContracts ? contractResults : contractResults.slice(0, 5)).map(contract => (
+                <tr 
+                  key={contract.conid}
+                  onClick={() => handleContractClick(contract)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <td style={{ border: '1px solid #444', padding: 8 }}>{contract.symbol}</td>
+                  <td style={{ border: '1px solid #444', padding: 8 }}>{contract.exchange ?? 'N/A'}</td>
+                  <td style={{ border: '1px solid #444', padding: 8 }}>{contract.currency}</td>
+                  <td style={{ border: '1px solid #444', padding: 8 }}>{contract.description}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {contractResults.length > 5 && !showAllContracts && (
+            <button 
+              onClick={() => setShowAllContracts(true)}
+              style={{ 
+                marginTop: '8px', 
+                padding: '8px 16px', 
+                background: '#61dafb', 
+                color: '#000', 
+                border: 'none', 
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Show All ({contractResults.length} total)
+            </button>
+          )}
+        </div>
       )}
       
       <div style={{ display: 'flex', gap: '2rem' }}>
@@ -352,6 +402,120 @@ function Statistics() {
   return <div>Statistics will be shown here.</div>;
 }
 
+function MarketDataPage() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { contract, marketData, error } = location.state || {};
+
+  if (!contract) {
+    return (
+      <div>
+        <h2>Market Data</h2>
+        <div style={{ color: 'red' }}>No contract data available.</div>
+        <button 
+          onClick={() => navigate('/positions')}
+          style={{ 
+            marginTop: '1rem', 
+            padding: '8px 16px', 
+            background: '#61dafb', 
+            color: '#000', 
+            border: 'none', 
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          Back to Positions
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <h2>Market Data - {contract.symbol}</h2>
+        <button 
+          onClick={() => navigate('/positions')}
+          style={{ 
+            padding: '8px 16px', 
+            background: '#61dafb', 
+            color: '#000', 
+            border: 'none', 
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          Back to Positions
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', gap: '2rem' }}>
+        <div style={{ flex: 1 }}>
+          <h3>Contract Information</h3>
+          <table style={{ width: '100%', background: '#222', borderCollapse: 'collapse' }}>
+            <tbody>
+              <tr>
+                <td style={{ border: '1px solid #444', padding: 8, fontWeight: 'bold', color: '#61dafb' }}>Symbol</td>
+                <td style={{ border: '1px solid #444', padding: 8 }}>{contract.symbol}</td>
+              </tr>
+              <tr>
+                <td style={{ border: '1px solid #444', padding: 8, fontWeight: 'bold', color: '#61dafb' }}>Contract ID</td>
+                <td style={{ border: '1px solid #444', padding: 8 }}>{contract.conid}</td>
+              </tr>
+              <tr>
+                <td style={{ border: '1px solid #444', padding: 8, fontWeight: 'bold', color: '#61dafb' }}>Exchange</td>
+                <td style={{ border: '1px solid #444', padding: 8 }}>{contract.exchange || 'N/A'}</td>
+              </tr>
+              <tr>
+                <td style={{ border: '1px solid #444', padding: 8, fontWeight: 'bold', color: '#61dafb' }}>Currency</td>
+                <td style={{ border: '1px solid #444', padding: 8 }}>{contract.currency || 'N/A'}</td>
+              </tr>
+              <tr>
+                <td style={{ border: '1px solid #444', padding: 8, fontWeight: 'bold', color: '#61dafb' }}>Description</td>
+                <td style={{ border: '1px solid #444', padding: 8 }}>{contract.description || 'N/A'}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{ flex: 1 }}>
+          <h3>Market Data</h3>
+          {error ? (
+            <div style={{ 
+              color: '#ff6b6b', 
+              background: '#4a2a2a', 
+              padding: '15px', 
+              borderRadius: '8px', 
+              border: '1px solid #ff6b6b' 
+            }}>
+              <h4>Error Loading Market Data</h4>
+              <p>{error}</p>
+            </div>
+          ) : marketData ? (
+            <div style={{ background: '#222', padding: '15px', borderRadius: '8px', border: '1px solid #444' }}>
+              {Object.entries(marketData).map(([key, value]) => (
+                <div key={key} style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  padding: '8px 0', 
+                  borderBottom: '1px solid #444' 
+                }}>
+                  <span style={{ fontWeight: 'bold', color: '#61dafb' }}>{key}:</span>
+                  <span>{String(value)}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ color: '#61dafb', textAlign: 'center', padding: '20px' }}>
+              Loading market data...
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   return (
     <Router>
@@ -370,6 +534,7 @@ function App() {
             <Route path="/positions" element={<Positions />} />
             <Route path="/statistics" element={<Statistics />} />
             <Route path="/trade-details" element={<TradeDetailsPage />} />
+            <Route path="/market-data" element={<MarketDataPage />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </main>
