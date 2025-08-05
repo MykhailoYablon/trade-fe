@@ -52,10 +52,34 @@ interface Order {
   createdAt?: string; // Optional, may not be present
 }
 
+interface MarketStatus {
+  exchange: string;
+  holiday: string | null;
+  isOpen: boolean;
+  session: string;
+  timezone: string;
+}
+
 function Home() {
   const [accounts, setAccounts] = useState<Record<string, string> | null>(null);
+  const [marketStatus, setMarketStatus] = useState<MarketStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [marketStatusLoading, setMarketStatusLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [marketStatusError, setMarketStatusError] = useState<string | null>(null);
+
+  const fetchMarketStatus = async () => {
+    setMarketStatusLoading(true);
+    setMarketStatusError(null);
+    try {
+      const res = await axios.get('http://localhost:8081/markets/status');
+      setMarketStatus(res.data);
+    } catch (err: any) {
+      setMarketStatusError('Failed to fetch market status');
+    } finally {
+      setMarketStatusLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchAccounts = async () => {
@@ -70,37 +94,116 @@ function Home() {
         setLoading(false);
       }
     };
+
     fetchAccounts();
+    fetchMarketStatus();
   }, []);
 
   return (
     <div>
       <h2>Welcome to the Home page!</h2>
-      <h3>Account Information</h3>
-      {loading ? (
-        <div>Loading account info...</div>
-      ) : error ? (
-        <div style={{ color: 'red' }}>{error}</div>
-      ) : accounts && Object.keys(accounts).length > 0 ? (
-        <table style={{ background: '#222', color: '#fff', borderCollapse: 'collapse', marginTop: 16 }}>
-          <thead>
-            <tr>
-              <th style={{ border: '1px solid #444', padding: 8 }}>Key</th>
-              <th style={{ border: '1px solid #444', padding: 8 }}>Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Object.entries(accounts).map(([key, value]) => (
-              <tr key={key}>
-                <td style={{ border: '1px solid #444', padding: 8 }}>{key}</td>
-                <td style={{ border: '1px solid #444', padding: 8 }}>{value}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <div>No account info available.</div>
-      )}
+      
+      <div style={{ display: 'flex', gap: '2rem', marginBottom: '2rem' }}>
+        <div style={{ flex: 1 }}>
+          <h3>Account Information</h3>
+          {loading ? (
+            <div>Loading account info...</div>
+          ) : error ? (
+            <div style={{ color: 'red' }}>{error}</div>
+          ) : accounts && Object.keys(accounts).length > 0 ? (
+            <table style={{ background: '#222', color: '#fff', borderCollapse: 'collapse', marginTop: 16 }}>
+              <thead>
+                <tr>
+                  <th style={{ border: '1px solid #444', padding: 8 }}>Key</th>
+                  <th style={{ border: '1px solid #444', padding: 8 }}>Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(accounts).map(([key, value]) => (
+                  <tr key={key}>
+                    <td style={{ border: '1px solid #444', padding: 8 }}>{key}</td>
+                    <td style={{ border: '1px solid #444', padding: 8 }}>{value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div>No account info available.</div>
+          )}
+        </div>
+
+        <div style={{ flex: 1 }}>
+          <h3>Market Status</h3>
+          {marketStatusLoading ? (
+            <div>Loading market status...</div>
+          ) : marketStatusError ? (
+            <div style={{ color: 'red' }}>{marketStatusError}</div>
+          ) : marketStatus ? (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '14px', color: '#888' }}>Last updated: {new Date().toLocaleTimeString()}</span>
+                <button 
+                  onClick={fetchMarketStatus}
+                  disabled={marketStatusLoading}
+                  style={{ 
+                    padding: '4px 8px', 
+                    background: '#61dafb', 
+                    color: '#000', 
+                    border: 'none', 
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  {marketStatusLoading ? '↻' : '↻'} Refresh
+                </button>
+              </div>
+              <table style={{ background: '#222', color: '#fff', borderCollapse: 'collapse', marginTop: 16 }}>
+                <thead>
+                  <tr>
+                    <th style={{ border: '1px solid #444', padding: 8 }}>Field</th>
+                    <th style={{ border: '1px solid #444', padding: 8 }}>Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style={{ border: '1px solid #444', padding: 8, fontWeight: 'bold', color: '#61dafb' }}>Exchange</td>
+                    <td style={{ border: '1px solid #444', padding: 8 }}>{marketStatus.exchange}</td>
+                  </tr>
+                  <tr>
+                    <td style={{ border: '1px solid #444', padding: 8, fontWeight: 'bold', color: '#61dafb' }}>Holiday</td>
+                    <td style={{ border: '1px solid #444', padding: 8 }}>{marketStatus.holiday || 'None'}</td>
+                  </tr>
+                  <tr>
+                    <td style={{ border: '1px solid #444', padding: 8, fontWeight: 'bold', color: '#61dafb' }}>Is Open</td>
+                    <td style={{ 
+                      border: '1px solid #444', 
+                      padding: 8, 
+                      color: marketStatus.isOpen ? '#4caf50' : '#f44336',
+                      fontWeight: 'bold'
+                    }}>
+                      {marketStatus.isOpen ? 'Yes' : 'No'}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={{ border: '1px solid #444', padding: 8, fontWeight: 'bold', color: '#61dafb' }}>Session</td>
+                    <td style={{ border: '1px solid #444', padding: 8 }}>{marketStatus.session}</td>
+                  </tr>
+                  <tr>
+                    <td style={{ border: '1px solid #444', padding: 8, fontWeight: 'bold', color: '#61dafb' }}>Timezone</td>
+                    <td style={{ border: '1px solid #444', padding: 8 }}>{marketStatus.timezone}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div>No market status available.</div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -204,15 +307,14 @@ function Positions() {
   const handleContractClick = async (contract: Contract) => {
     try {
       const res = await axios.get('http://localhost:8081/contracts/market-data', {
-        params: { conid: contract.conid }
+        params: { symbol: contract.symbol }
       });
       console.log('Market data response:', res.data);
       
       // Navigate to market data page with contract and market data
       navigate('/market-data', { 
         state: { 
-          contract, 
-          marketData: res.data 
+          contract
         } 
       });
     } catch (err: any) {
@@ -405,7 +507,35 @@ function Statistics() {
 function MarketDataPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { contract, marketData, error } = location.state || {};
+  const { contract: locationContract, marketData: locationMarketData, error: locationError } = location.state || {};
+
+  // Local state for market data and error
+  const [marketData, setMarketData] = useState(locationMarketData || null);
+  const [error, setError] = useState(locationError || null);
+  const [loading, setLoading] = useState(false);
+
+  // Always use contract from location.state
+  const contract = locationContract;
+
+  // Fetch market data on mount or when contract changes, if not already present
+  useEffect(() => {
+    if (contract && !marketData) {
+      setLoading(true);
+      setError(null);
+      axios.get('http://localhost:8081/contracts/market-data', {
+        params: { symbol: contract.symbol }
+      })
+        .then(res => {
+          setMarketData(res.data);
+        })
+        .catch(err => {
+          setError(err.message || 'Failed to fetch market data');
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    }
+  }, [contract]);
 
   if (!contract) {
     return (
@@ -491,6 +621,10 @@ function MarketDataPage() {
               <h4>Error Loading Market Data</h4>
               <p>{error}</p>
             </div>
+          ) : loading ? (
+            <div style={{ color: '#61dafb', textAlign: 'center', padding: '20px' }}>
+              Loading market data...
+            </div>
           ) : marketData ? (
             <div style={{ background: '#222', padding: '15px', borderRadius: '8px', border: '1px solid #444' }}>
               {Object.entries(marketData).map(([key, value]) => (
@@ -505,11 +639,7 @@ function MarketDataPage() {
                 </div>
               ))}
             </div>
-          ) : (
-            <div style={{ color: '#61dafb', textAlign: 'center', padding: '20px' }}>
-              Loading market data...
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
