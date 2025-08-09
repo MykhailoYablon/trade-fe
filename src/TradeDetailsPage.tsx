@@ -75,7 +75,7 @@ export default function TradeDetailsPage() {
     setLoadingHistory(true);
     setError(null);
     try {
-      const res = await axios.get(`http://localhost:8080/positions/${conid}/historical/${selectedTimeframe}?days=${selectedDays}`);
+      const res = await axios.get(`http://localhost:8081/positions/${conid}/historical/${selectedTimeframe}?days=${selectedDays}`);
       
       // Sort the data by timestamp to ensure proper chronological order
       const sortedData = res.data.sort((a: HistoricalData, b: HistoricalData) => {
@@ -137,7 +137,7 @@ export default function TradeDetailsPage() {
     setSubmitting(true);
     setError(null);
     try {
-      await axios.post('http://localhost:8080/orders', null, {
+      await axios.post('http://localhost:8081/orders', null, {
         params: {
           conid: position.conid,
           quantity: Number(form.quantity),
