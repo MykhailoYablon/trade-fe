@@ -143,6 +143,7 @@ export default function TradeDetailsPage() {
           quantity: Number(form.quantity),
           price: Number(form.avgPrice),
           action: form.action,
+          symbol: form.symbol,
         }
       });
       setShowForm(false);

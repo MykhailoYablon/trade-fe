@@ -212,7 +212,7 @@ function Positions() {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get('http://localhost:8081/positions');
+      const res = await axios.get('http://localhost:8081/positions/all');
       const data = Array.isArray(res.data) ? res.data : [];
       setPositions(data);
       if (!Array.isArray(res.data)) {
@@ -225,11 +225,15 @@ function Positions() {
     }
   };
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (symbol?: string) => {
     setOrdersLoading(true);
     setOrdersError(null);
     try {
-      const res = await axios.get('http://localhost:8081/orders');
+      const res = await axios.get('http://localhost:8081/orders', {
+        params: {
+          symbol: symbol || (positions.length > 0 ? positions[0].symbol : undefined)
+        }
+      });
       const data = Array.isArray(res.data) ? res.data : [];
       setOrders(data);
       if (!Array.isArray(res.data)) {
@@ -309,12 +313,19 @@ function Positions() {
 
   useEffect(() => {
     fetchPositions();
-    fetchOrders();
   }, []);
 
-  // Fetch orders again when returning to this page
+  // Fetch orders when positions load or when returning to this page
   useEffect(() => {
-    fetchOrders();
+    if (positions.length > 0) {
+      fetchOrders(positions[0].symbol);
+    }
+  }, [positions]);
+
+  useEffect(() => {
+    if (positions.length > 0) {
+      fetchOrders(positions[0].symbol);
+    }
   }, [location]);
 
   return (
@@ -615,7 +626,7 @@ function MarketDataPage() {
         <h2>Market Data</h2>
         <div style={{ color: 'red' }}>No contract data available.</div>
         <button 
-          onClick={() => navigate('/positions')}
+          onClick={() => navigate('/positions/all')}
           style={{ 
             marginTop: '1rem', 
             padding: '8px 16px', 
@@ -637,7 +648,7 @@ function MarketDataPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h2>Market Data - {contract.symbol}</h2>
         <button 
-          onClick={() => navigate('/positions')}
+          onClick={() => navigate('/positions/all')}
           style={{ 
             padding: '8px 16px', 
             background: '#61dafb', 
@@ -721,14 +732,14 @@ function App() {
           <h2 style={{ color: '#61dafb' }}>Trade FE</h2>
           <ul style={{ listStyle: 'none', padding: 0 }}>
             <li style={{ margin: '1rem 0' }}><Link to="/" style={{ color: '#fff', textDecoration: 'none' }}>Home</Link></li>
-            <li style={{ margin: '1rem 0' }}><Link to="/positions" style={{ color: '#fff', textDecoration: 'none' }}>Positions</Link></li>
+            <li style={{ margin: '1rem 0' }}><Link to="/positions/all" style={{ color: '#fff', textDecoration: 'none' }}>Positions</Link></li>
             <li style={{ margin: '1rem 0' }}><Link to="/statistics" style={{ color: '#fff', textDecoration: 'none' }}>Statistics</Link></li>
           </ul>
         </nav>
         <main style={{ flex: 1, background: '#282c34', color: '#fff', padding: '2rem' }}>
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/positions" element={<Positions />} />
+            <Route path="/positions/all" element={<Positions />} />
             <Route path="/statistics" element={<Statistics />} />
             <Route path="/trade-details" element={<TradeDetailsPage />} />
             <Route path="/market-data" element={<MarketDataPage />} />
